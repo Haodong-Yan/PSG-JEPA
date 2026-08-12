@@ -1,0 +1,16 @@
+# Core
+torch>=2.1
+einops
+numpy
+hydra-core
+omegaconf
+lightning>=2.2
+wandb             # optional (loss logging; disabled by default)
+
+# LeWM infrastructure (world-model training loop + OGBench environments/data).
+# PSG-JEPA is a grounding add-on on top of LeWM's public packages (galilai-group):
+#   stable-worldmodel   https://github.com/galilai-group/stable-worldmodel   (provides `swm`)
+#   stable-pretraining  https://github.com/galilai-group/stable-pretraining  (provides `spt`)
+# Install with uv (Python 3.10):
+#   uv venv --python=3.10 && source .venv/bin/activate
+#   uv pip install "stable-worldmodel[train,env]==0.1.0" "stable-pretraining==0.1.6"

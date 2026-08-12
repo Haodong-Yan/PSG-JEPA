@@ -1,0 +1,78 @@
+defaults:
+  - _self_
+  - data: ogb_cm            # ogb_cm (OGBench-Cube)
+
+output_model_name: psgjepa
+subdir: ${hydra:job.id}
+
+num_workers: 6
+train_split: 0.9
+seed: 3072
+img_size: 224
+patch_size: 14
+encoder_scale: tiny          # ViT-Tiny/14 backbone (LeWM setting)
+dump_object: True
+
+trainer:
+  max_epochs: 10
+  devices: auto
+  accelerator: gpu
+  precision: bf16
+  gradient_clip_val: 1.0
+
+loader:
+  # per-device: with trainer.devices=auto on a multi-GPU host the effective batch is
+  # 128 x num_devices. Set trainer.devices=1 for the single-device batch of 128.
+  batch_size: 128
+  num_workers: ${num_workers}
+  persistent_workers: True
+  prefetch_factor: 3
+  pin_memory: True
+
+optimizer:
+  type: AdamW
+  lr: 5e-5
+  weight_decay: 1e-3
+
+wandb:
+  enabled: False
+  config:
+    entity: null
+    project: psgjepa
+    name: ${output_model_name}
+    id: ${subdir}
+    resume: allow
+    log_model: False
+
+wm:
+  type: psgjepa
+  history_size: 3
+  num_preds: 1
+  embed_dim: 192
+  use_state: false            # video-only encoder input; grounding supervises the latents
+  state_inject_mode: patch
+
+predictor:
+  depth: 6
+  heads: 16
+  mlp_dim: 2048
+  dim_head: 64
+  dropout: 0.1
+  emb_dropout: 0.0
+
+loss:
+  sigreg:                      # LeWM anti-collapse regularizer (kept unchanged)
+    weight: 0.09
+    kwargs:
+      knots: 17
+      num_proj: 1024
+  grounding:                   # physical state grounding (set weight: 0.0 to disable)
+    weight: 0.1                # lambda_g
+    hidden_dim: 256
+    use_velocity: true         # optional velocity term of the transition grounding;
+                               # true when the env logs joint velocity (OGBench does).
+    # OGBench arm observation layout:
+    #   joint_pos [0:6] | joint_vel [6:12] | effector+gripper [12:19] | privileged [19:]
+    state_idx: [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18]   # s_t : joint angles + effector/gripper (13-d)
+    joint_idx: [0, 1, 2, 3, 4, 5]                                # q_t : joint angles (multi-horizon Delta-q)
+    vel_idx:   [6, 7, 8, 9, 10, 11]                              # velocity target (used iff use_velocity)
