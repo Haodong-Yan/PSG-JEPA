@@ -182,9 +182,9 @@ class _wrap:
         self.late_proprio = late_proprio  # raw proprio for late_concat
 
 try:
-    from .grounding import PSGGroundingHeads, grounding_loss
+    from .grounding import PSGGroundingHeads, grounding_loss, libero_grounding_loss
 except ImportError:
-    from grounding import PSGGroundingHeads, grounding_loss
+    from grounding import PSGGroundingHeads, grounding_loss, libero_grounding_loss
 
 
 class CrossModalJEPA_v2(nn.Module):
@@ -389,7 +389,31 @@ def psg_forward(self, batch, stage, cfg):
     # --- physical state grounding (training-only; heads discarded at inference) ---
     gcfg = cfg.loss.get("grounding", {}) if hasattr(cfg.loss, "get") else {}
     gw = float(gcfg.get("weight", 0.0))
-    if self.model.grounding is not None and gw > 0.0:
+    target = str(gcfg.get("target", "velocity"))
+    if self.model.grounding is not None and gw > 0.0 and target == "action":
+        # LIBERO form: the motion head is supervised on the action (see psgjepa/grounding.py).
+        w_state = float(gcfg.get("w_state", 0.1))
+        w_djoint = float(gcfg.get("w_djoint", 1.0))
+        if (w_state > 0 or w_djoint > 0) and "observation" not in batch:
+            raise KeyError(
+                "LIBERO grounding needs a state column when loss.grounding.w_state or "
+                "w_djoint is > 0, but the batch has no 'observation'. Use the "
+                "libero_goal_cm_state dataset, or set those weights to 0.0."
+            )
+        gl = libero_grounding_loss(
+            self.model.grounding, emb, batch["action"],
+            state=batch.get("observation"),
+            joint_dim=int(gcfg.get("joint_dim", 7)),
+            w_state=w_state,
+            w_motion=float(gcfg.get("w_motion", 1.0)),
+            w_djoint=w_djoint,
+        )
+        output["loss"] = output["loss"] + gw * gl["loss"]
+        output["grounding_loss"] = gl["loss"].detach()
+        for k in ("static", "motion", "djoint"):
+            if k in gl:
+                output[f"grounding_{k}_loss"] = gl[k]
+    elif self.model.grounding is not None and gw > 0.0:
         if "observation" not in batch:
             raise KeyError(
                 "physical state grounding is enabled (loss.grounding.weight > 0) but the batch "

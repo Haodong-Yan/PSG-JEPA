@@ -123,3 +123,99 @@ def grounding_loss(heads: PSGGroundingHeads, emb, state,
 
     logs["loss"] = l_static + l_dynamic
     return logs
+
+
+# =====================================================================
+# LIBERO-Goal variant: the motion target is the action, not the velocity
+# =====================================================================
+#
+# LIBERO logs no joint velocity, so the transition head cannot be supervised on instantaneous
+# velocity. The recorded action takes its place as the motion target -- the closest available
+# signal for "what changed between these two latents" -- and the multi-horizon joint-angle term
+# is unchanged. Selected with `loss.grounding.target: action`; see configs/psgjepa_libero.yaml.
+#
+#     L_static : H_s : z_t                -> s_t             robot-body state
+#     L_motion : H_a : (z_t, z_{t+1})     -> a_t             the logged action
+#     L_djoint : H_d : (z_t, z_{t+k})     -> q_{t+k} - q_t   every horizon k = 1 .. T-1
+#
+# Terms whose weight is zero are skipped, so a variant that uses only the motion head needs no
+# state column in the dataset at all.
+
+LIBERO_STATE_DIM = 15      # [joint_states(7), ee_pos(3), ee_ori(3), gripper_states(2)]
+LIBERO_JOINT_DIM = 7       # leading joint_states block, the multi-horizon Delta-q target
+LIBERO_ACTION_DIM = 7
+
+
+class LiberoGroundingHeads(nn.Module):
+    """Grounding heads for the LIBERO form; discarded after world-model training.
+
+    Args:
+        embed_dim:  dimension of a single-frame latent z_t.
+        state_dim:  dimension of the robot-body state target s_t.
+        joint_dim:  dimension of the joint vector q_t (the multi-horizon Delta-q target).
+        action_dim: dimension of the logged action, the motion target.
+        hidden:     MLP hidden width.
+    """
+
+    def __init__(self, embed_dim, state_dim=LIBERO_STATE_DIM, joint_dim=LIBERO_JOINT_DIM,
+                 action_dim=LIBERO_ACTION_DIM, hidden=256):
+        super().__init__()
+        self.state_head = _mlp(embed_dim, state_dim, hidden)            # H_s : z_t -> s_t
+        self.motion_head = _mlp(2 * embed_dim, action_dim, hidden)      # H_a : (z_t, z_{t+1}) -> a_t
+        self.djoint_head = _mlp(2 * embed_dim, joint_dim, hidden)       # H_d : (z_t, z_{t+k}) -> dq
+
+
+def libero_grounding_loss(heads, emb, action, state=None, joint_dim=LIBERO_JOINT_DIM,
+                          w_state=0.1, w_motion=1.0, w_djoint=1.0):
+    """Compute the LIBERO grounding loss for a batch.
+
+    Args:
+        heads:     a ``LiberoGroundingHeads`` instance.
+        emb:       (B, T, D) per-frame latents from the shared encoder.
+        action:    (B, T, A) logged actions; only the first T-1 steps are used.
+        state:     (B, T, S) logged robot-body state. Required unless both ``w_state`` and
+                   ``w_djoint`` are zero, in which case it is never touched.
+        joint_dim: how many leading state dimensions form the joint vector q.
+
+    Returns:
+        dict with ``loss`` (the weighted sum) and detached per-term logs.
+    """
+    B, T, D = emb.shape
+    logs = {}
+    total = emb.new_zeros(())
+
+    if w_state > 0 or w_djoint > 0:
+        if state is None:
+            raise ValueError("LIBERO grounding needs a state column when w_state or w_djoint > 0")
+
+    # --- static grounding: every latent z_t must expose the robot-body state s_t ---
+    if w_state > 0:
+        state_pred = heads.state_head(emb.reshape(B * T, D)).reshape(B, T, -1)
+        l_state = ((state_pred - state) ** 2).mean()
+        total = total + w_state * l_state
+        logs["static"] = l_state.detach()
+
+    # --- motion grounding: the adjacent pair (z_t, z_{t+1}) must expose the action a_t ---
+    if w_motion > 0:
+        z_a = emb[:, :-1].reshape(B * (T - 1), D)
+        z_b = emb[:, 1:].reshape(B * (T - 1), D)
+        action_pred = heads.motion_head(torch.cat([z_a, z_b], dim=-1)).reshape(B, T - 1, -1)
+        l_motion = ((action_pred - action[:, :T - 1]) ** 2).mean()
+        total = total + w_motion * l_motion
+        logs["motion"] = l_motion.detach()
+
+    # --- transition grounding: every pair (z_t, z_{t+k}) must expose the net joint change ---
+    if w_djoint > 0:
+        q = state[..., :joint_dim]
+        per_k = []
+        for k in range(1, T):
+            z_ak = emb[:, :T - k].reshape(B * (T - k), D)
+            z_bk = emb[:, k:].reshape(B * (T - k), D)
+            dq_pred = heads.djoint_head(torch.cat([z_ak, z_bk], dim=-1)).reshape(B, T - k, -1)
+            per_k.append(((dq_pred - (q[:, k:] - q[:, :T - k])) ** 2).mean())
+        l_djoint = sum(per_k) / len(per_k)
+        total = total + w_djoint * l_djoint
+        logs["djoint"] = l_djoint.detach()
+
+    logs["loss"] = total
+    return logs

@@ -1,0 +1,82 @@
+# PSG-JEPA encoder pretraining on LIBERO-Goal.
+#   python train.py --config-name=psgjepa_libero
+# Variants are selected by overriding loss.grounding.* -- see libero/scripts/run_libero.sh.
+defaults:
+  - _self_
+  - data: libero_goal_cm_state    # libero_goal_cm (no state column) | libero_goal_cm_state
+
+output_model_name: lewm_v2        # checkpoint stem, kept for the released checkpoint names
+subdir: ${hydra:job.id}
+
+num_workers: 6
+train_split: 0.9
+seed: 3072
+img_size: 224
+patch_size: 14
+encoder_scale: tiny               # ViT-Tiny/14 backbone (LeWM setting)
+dump_object: True
+
+trainer:
+  max_epochs: 40
+  devices: auto
+  accelerator: gpu
+  precision: bf16
+  gradient_clip_val: 1.0
+
+loader:
+  batch_size: 64
+  num_workers: ${num_workers}
+  persistent_workers: True
+  prefetch_factor: 3
+  pin_memory: True
+
+optimizer:
+  type: AdamW
+  lr: 5e-5
+  weight_decay: 1e-3
+
+wandb:
+  enabled: False
+  config:
+    entity: null
+    project: psgjepa
+    name: ${output_model_name}
+    id: ${subdir}
+    resume: allow
+    log_model: False
+
+wm:
+  type: psgjepa
+  history_size: 3
+  num_preds: 1
+  embed_dim: 192
+  use_state: false                # video-only encoder input; grounding supervises the latents
+  state_inject_mode: patch
+  observation_dim: 15
+  proprio_dim: 15
+
+predictor:
+  depth: 6
+  heads: 16
+  mlp_dim: 2048
+  dim_head: 64
+  dropout: 0.1
+  emb_dropout: 0.0
+
+loss:
+  sigreg:                         # LeWM anti-collapse regularizer (kept unchanged)
+    weight: 0.09
+    kwargs:
+      knots: 17
+      num_proj: 1024
+  grounding:                      # physical state grounding (set weight: 0.0 to disable)
+    target: action                # LIBERO logs no joint velocity; the action is the motion target
+    weight: 0.1                   # lambda_g
+    hidden_dim: 256
+    # LIBERO robot-body state layout, written by libero/convert_libero_to_swm.py --with-state:
+    #   joint_states [0:7] | ee_pos [7:10] | ee_ori [10:13] | gripper_states [13:15]
+    state_dim: 15                 # static grounding target s_t
+    joint_dim: 7                  # leading joint block, the multi-horizon Delta-q target
+    w_state: 0.1                  # per-head weights inside the grounding term
+    w_motion: 1.0
+    w_djoint: 1.0

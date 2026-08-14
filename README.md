@@ -14,17 +14,20 @@ psgjepa/
   grounding.py   # PSGGroundingHeads + grounding_loss  (static + transition grounding)
   module.py      # ARPredictor / SIGReg / MLP / Embedder (from LeWM)
   utils.py       # dataset transforms + checkpoint callback
-configs/         # hydra configs: psgjepa.yaml + data/ogb_cm.yaml
+configs/         # hydra configs: psgjepa.yaml, psgjepa_libero.yaml + data/
 train.py         # training entry point
 scripts/         # train.sh
 eval/            # GC-IDM planner (Nguyen et al., 2026) for the closed-loop planning eval
+libero/          # LIBERO-Goal policy learning: OFT head, closed-loop eval, checkpoints
 ```
 
 ## Scope & roadmap
 
-The release starts with world-model training and goal-conditioned planning on OGBench-Cube:
+The release covers world-model training and goal-conditioned planning on OGBench-Cube --
 training the PSG-JEPA encoder lives here, and closed-loop planning is run with the official GC-IDM
-planner (see **Evaluate** below). OGBench-Scene and policy learning on LIBERO-Goal: coming soon.
+planner (see **Evaluate** below) -- and policy learning on LIBERO-Goal, which lives in
+[`libero/`](libero/) with its own README, released checkpoints and evaluation logs.
+OGBench-Scene: coming soon.
 
 ## Install
 Set up the training environment (Python 3.10):

@@ -1,0 +1,5 @@
+# Downloaded / staged checkpoints and locally produced runs.
+# `weights/manifest.json` and `results/*.json` are tracked; the artifacts they point at are not.
+weights/checkpoints/
+runs/
+__pycache__/

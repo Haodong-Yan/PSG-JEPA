@@ -1,0 +1,126 @@
+{
+  "checkpoint": "lewm/seed3072/oft_head_epoch30.ckpt",
+  "head_type": "oft",
+  "fm_sampling_steps": null,
+  "fm_noise_scale": null,
+  "clip_normalized_actions": false,
+  "train_encoder": true,
+  "trained_task_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "chunk_len": 8,
+  "action_horizon": 8,
+  "task_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "n_eval": 50,
+  "max_steps": 600,
+  "env_img_res": 128,
+  "mean_success_rate": 0.772,
+  "tasks": [
+    {
+      "task_id": 0,
+      "task_name": "open_the_middle_drawer_of_the_cabinet",
+      "language": "open the middle drawer of the cabinet",
+      "success_rate": 0.9,
+      "n_eval": 50,
+      "elapsed_sec": 284.5434732437134
+    },
+    {
+      "task_id": 1,
+      "task_name": "put_the_bowl_on_the_stove",
+      "language": "put the bowl on the stove",
+      "success_rate": 0.9,
+      "n_eval": 50,
+      "elapsed_sec": 206.82607769966125
+    },
+    {
+      "task_id": 2,
+      "task_name": "put_the_wine_bottle_on_top_of_the_cabinet",
+      "language": "put the wine bottle on top of the cabinet",
+      "success_rate": 0.6,
+      "n_eval": 50,
+      "elapsed_sec": 364.1251060962677
+    },
+    {
+      "task_id": 3,
+      "task_name": "open_the_top_drawer_and_put_the_bowl_inside",
+      "language": "open the top drawer and put the bowl inside",
+      "success_rate": 0.8,
+      "n_eval": 50,
+      "elapsed_sec": 391.6387219429016
+    },
+    {
+      "task_id": 4,
+      "task_name": "put_the_bowl_on_top_of_the_cabinet",
+      "language": "put the bowl on top of the cabinet",
+      "success_rate": 0.9,
+      "n_eval": 50,
+      "elapsed_sec": 234.37806844711304
+    },
+    {
+      "task_id": 5,
+      "task_name": "push_the_plate_to_the_front_of_the_stove",
+      "language": "push the plate to the front of the stove",
+      "success_rate": 0.52,
+      "n_eval": 50,
+      "elapsed_sec": 514.2121081352234
+    },
+    {
+      "task_id": 6,
+      "task_name": "put_the_cream_cheese_in_the_bowl",
+      "language": "put the cream cheese in the bowl",
+      "success_rate": 0.78,
+      "n_eval": 50,
+      "elapsed_sec": 529.6352825164795
+    },
+    {
+      "task_id": 7,
+      "task_name": "turn_on_the_stove",
+      "language": "turn on the stove",
+      "success_rate": 0.98,
+      "n_eval": 50,
+      "elapsed_sec": 457.26864314079285
+    },
+    {
+      "task_id": 8,
+      "task_name": "put_the_bowl_on_the_plate",
+      "language": "put the bowl on the plate",
+      "success_rate": 0.58,
+      "n_eval": 50,
+      "elapsed_sec": 435.4526877403259
+    },
+    {
+      "task_id": 9,
+      "task_name": "put_the_wine_bottle_on_the_rack",
+      "language": "put the wine bottle on the rack",
+      "success_rate": 0.76,
+      "n_eval": 50,
+      "elapsed_sec": 389.29732179641724
+    }
+  ],
+  "elapsed_sec": 3807.386693239212,
+  "created_at": "2026-06-29T13:20:26",
+  "variant": "lewm",
+  "paper_name": "LeWM",
+  "train_seed": 3072,
+  "eval_seed": 4242
+}

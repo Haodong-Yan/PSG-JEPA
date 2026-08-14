@@ -23,7 +23,7 @@ from lightning.pytorch.loggers import WandbLogger
 from omegaconf import OmegaConf, open_dict
 
 from psgjepa.model import CrossModalViTEncoder, CrossModalJEPA_v2, psg_forward
-from psgjepa.grounding import PSGGroundingHeads
+from psgjepa.grounding import PSGGroundingHeads, LiberoGroundingHeads
 from psgjepa.module import ARPredictor, Embedder, MLP, SIGReg
 from psgjepa.utils import get_column_normalizer, get_img_preprocessor, ModelObjectCallBack, RenameKey
 
@@ -86,7 +86,20 @@ def run(cfg):
     grounding = None
     gcfg = cfg.loss.get("grounding", {})
     gw = float(gcfg.get("weight", 0.0))
-    if gw > 0:
+    if gw > 0 and str(gcfg.get("target", "velocity")) == "action":
+        # LIBERO form: the motion head predicts the action instead of the velocity.
+        grounding = LiberoGroundingHeads(
+            embed_dim=embed_dim,
+            state_dim=int(gcfg.get("state_dim", 15)),
+            joint_dim=int(gcfg.get("joint_dim", 7)),
+            action_dim=effective_act_dim,
+            hidden=gcfg.get("hidden_dim", 256),
+        )
+        print(f"[grounding] target=action weight={gw} "
+              f"w_state={gcfg.get('w_state', 0.1)} w_motion={gcfg.get('w_motion', 1.0)} "
+              f"w_djoint={gcfg.get('w_djoint', 1.0)} "
+              f"params={sum(p.numel() for p in grounding.parameters())/1e6:.2f}M")
+    elif gw > 0:
         use_vel = bool(gcfg.get("use_velocity", False))
         grounding = PSGGroundingHeads(
             embed_dim=embed_dim,

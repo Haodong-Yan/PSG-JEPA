@@ -1,0 +1,117 @@
+{
+  "description": "PSG-JEPA LIBERO-Goal checkpoints",
+  "seed": 3072,
+  "eval_protocol": {
+    "tasks": 10,
+    "rollouts_per_task": 50,
+    "eval_seed": 4242,
+    "max_steps": 600,
+    "action_horizon": 8,
+    "head_epoch": 30,
+    "pretrain_epoch": 40
+  },
+  "variants": {
+    "lewm": {
+      "paper_name": "LeWM",
+      "encoder": "lewm",
+      "data": "libero_goal_cm",
+      "grounding": "none (forward prediction + SIGReg only)",
+      "overrides": [
+        "loss.grounding.weight=0.0"
+      ]
+    },
+    "lewm_actionidm": {
+      "paper_name": "LeWM_ActionIDM",
+      "encoder": "lewm",
+      "data": "libero_goal_cm",
+      "grounding": "adjacent-pair action IDM only",
+      "overrides": [
+        "loss.grounding.weight=0.1",
+        "loss.grounding.w_state=0.0",
+        "loss.grounding.w_djoint=0.0"
+      ]
+    },
+    "dinov2": {
+      "paper_name": "DINOv2",
+      "encoder": "dinov2_hf",
+      "data": "",
+      "grounding": "n/a -- pretrained facebook/dinov2-base used as the encoder",
+      "overrides": []
+    },
+    "psgjepa": {
+      "paper_name": "PSG-JEPA (ours)",
+      "encoder": "lewm",
+      "data": "libero_goal_cm_state",
+      "grounding": "state + adjacent-pair action + multi-horizon delta-joint",
+      "overrides": [
+        "loss.grounding.weight=0.1"
+      ]
+    }
+  },
+  "total_bytes": 1621045988,
+  "files": [
+    {
+      "path": "dinov2/seed3072/oft_head_epoch30.ckpt",
+      "kind": "head",
+      "variant": "dinov2",
+      "paper_name": "DINOv2",
+      "seed": 3072,
+      "bytes": 558844134,
+      "sha256": "4dc270d4b1dea2be805aa994a9e8e1adce8ebf18805528a48386182740016fed"
+    },
+    {
+      "path": "lewm/seed3072/encoder_epoch40.ckpt",
+      "kind": "encoder",
+      "variant": "lewm",
+      "paper_name": "LeWM",
+      "seed": 3072,
+      "bytes": 72355232,
+      "sha256": "ca3d1493c595704b97f3ddbdd9d25be05cad953f8d2a6bf20d31b451a9b9204f"
+    },
+    {
+      "path": "lewm/seed3072/oft_head_epoch30.ckpt",
+      "kind": "head",
+      "variant": "lewm",
+      "paper_name": "LeWM",
+      "seed": 3072,
+      "bytes": 280018106,
+      "sha256": "62ef7bdb1a3b3cdfca733b37d0d942a66141c839be694a88bea3f4db313f99e1"
+    },
+    {
+      "path": "lewm_actionidm/seed3072/encoder_epoch40.ckpt",
+      "kind": "encoder",
+      "variant": "lewm_actionidm",
+      "paper_name": "LeWM_ActionIDM",
+      "seed": 3072,
+      "bytes": 73052148,
+      "sha256": "73738458dd81b807175bc443d4613ec3501ba3768525e7cb6c682c9bf4370cbf"
+    },
+    {
+      "path": "lewm_actionidm/seed3072/oft_head_epoch30.ckpt",
+      "kind": "head",
+      "variant": "lewm_actionidm",
+      "paper_name": "LeWM_ActionIDM",
+      "seed": 3072,
+      "bytes": 280714930,
+      "sha256": "4750b23b666c7c396e9ffdeef440e8fce2592f1b50893f425d7ff7c49802aeb5"
+    },
+    {
+      "path": "psgjepa/seed3072/encoder_epoch40.ckpt",
+      "kind": "encoder",
+      "variant": "psgjepa",
+      "paper_name": "PSG-JEPA (ours)",
+      "seed": 3072,
+      "bytes": 74199388,
+      "sha256": "90979ad6d0e76f8c8ce0652f05d421cab149f50223ee6299fa106a218e300b77"
+    },
+    {
+      "path": "psgjepa/seed3072/oft_head_epoch30.ckpt",
+      "kind": "head",
+      "variant": "psgjepa",
+      "paper_name": "PSG-JEPA (ours)",
+      "seed": 3072,
+      "bytes": 281862050,
+      "sha256": "040cca5f0a74119d4e72660e1123a5b4ccf1fbdce091ade2e1a105e8983fc01e"
+    }
+  ]
+}

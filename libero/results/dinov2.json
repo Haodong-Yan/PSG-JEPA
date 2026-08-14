@@ -1,0 +1,126 @@
+{
+  "checkpoint": "dinov2/seed3072/oft_head_epoch30.ckpt",
+  "head_type": "oft",
+  "fm_sampling_steps": null,
+  "fm_noise_scale": null,
+  "clip_normalized_actions": false,
+  "train_encoder": true,
+  "trained_task_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "chunk_len": 8,
+  "action_horizon": 8,
+  "task_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "n_eval": 50,
+  "max_steps": 600,
+  "env_img_res": 128,
+  "mean_success_rate": 0.8800000000000001,
+  "tasks": [
+    {
+      "task_id": 0,
+      "task_name": "open_the_middle_drawer_of_the_cabinet",
+      "language": "open the middle drawer of the cabinet",
+      "success_rate": 0.84,
+      "n_eval": 50,
+      "elapsed_sec": 295.5436518192291
+    },
+    {
+      "task_id": 1,
+      "task_name": "put_the_bowl_on_the_stove",
+      "language": "put the bowl on the stove",
+      "success_rate": 0.98,
+      "n_eval": 50,
+      "elapsed_sec": 155.80440068244934
+    },
+    {
+      "task_id": 2,
+      "task_name": "put_the_wine_bottle_on_top_of_the_cabinet",
+      "language": "put the wine bottle on top of the cabinet",
+      "success_rate": 0.86,
+      "n_eval": 50,
+      "elapsed_sec": 217.1562876701355
+    },
+    {
+      "task_id": 3,
+      "task_name": "open_the_top_drawer_and_put_the_bowl_inside",
+      "language": "open the top drawer and put the bowl inside",
+      "success_rate": 0.82,
+      "n_eval": 50,
+      "elapsed_sec": 315.76430583000183
+    },
+    {
+      "task_id": 4,
+      "task_name": "put_the_bowl_on_top_of_the_cabinet",
+      "language": "put the bowl on top of the cabinet",
+      "success_rate": 0.92,
+      "n_eval": 50,
+      "elapsed_sec": 194.85607504844666
+    },
+    {
+      "task_id": 5,
+      "task_name": "push_the_plate_to_the_front_of_the_stove",
+      "language": "push the plate to the front of the stove",
+      "success_rate": 0.88,
+      "n_eval": 50,
+      "elapsed_sec": 253.1711447238922
+    },
+    {
+      "task_id": 6,
+      "task_name": "put_the_cream_cheese_in_the_bowl",
+      "language": "put the cream cheese in the bowl",
+      "success_rate": 0.72,
+      "n_eval": 50,
+      "elapsed_sec": 299.89446234703064
+    },
+    {
+      "task_id": 7,
+      "task_name": "turn_on_the_stove",
+      "language": "turn on the stove",
+      "success_rate": 0.98,
+      "n_eval": 50,
+      "elapsed_sec": 139.441077709198
+    },
+    {
+      "task_id": 8,
+      "task_name": "put_the_bowl_on_the_plate",
+      "language": "put the bowl on the plate",
+      "success_rate": 0.88,
+      "n_eval": 50,
+      "elapsed_sec": 203.8862488269806
+    },
+    {
+      "task_id": 9,
+      "task_name": "put_the_wine_bottle_on_the_rack",
+      "language": "put the wine bottle on the rack",
+      "success_rate": 0.92,
+      "n_eval": 50,
+      "elapsed_sec": 232.09337091445923
+    }
+  ],
+  "elapsed_sec": 2307.620682954788,
+  "created_at": "2026-07-09T00:51:54",
+  "variant": "dinov2",
+  "paper_name": "DINOv2",
+  "train_seed": 3072,
+  "eval_seed": 4242
+}
