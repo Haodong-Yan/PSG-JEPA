@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Fetch the released LIBERO-Goal checkpoints and verify them against `manifest.json`.
+"""Fetch the released PSG-JEPA LIBERO-Goal checkpoints and verify them against `manifest.json`.
 
-    python weights/download_weights.py                        # everything (~1.5 GiB)
-    python weights/download_weights.py --variant psgjepa      # one variant
-    python weights/download_weights.py --kind encoder         # encoders only (~0.2 GiB)
-    python weights/download_weights.py --verify-only          # re-check what is on disk
+    python weights/download_weights.py                     # encoder + head (~0.33 GiB)
+    python weights/download_weights.py --kind encoder      # encoder only (~0.07 GiB)
+    python weights/download_weights.py --verify-only       # re-check what is on disk
 
 Files land under `--dest` (default `weights/checkpoints/`) in the manifest's layout:
 

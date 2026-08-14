@@ -6,7 +6,8 @@ evaluated with 50 rollouts on each of the 10 LIBERO-Goal tasks. `VARIANTS` is th
 of truth for what distinguishes them: the hydra `data=` config and the loss overrides passed to
 `train.py --config-name=psgjepa_libero`. `scripts/run_libero.sh` mirrors this table -- keep the two in sync.
 
-The released checkpoints and eval logs are for training seed 3072.
+Eval logs for all four variants are in `results/`; the published checkpoints are PSG-JEPA's.
+Everything is training seed 3072.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 RELEASED_SEED = 3072
+RELEASED_VARIANTS = ("psgjepa",)   # checkpoints we publish; results/ covers all four
 EVAL_SEED = 4242
 PRETRAIN_EPOCH = 40
 HEAD_EPOCH = 30

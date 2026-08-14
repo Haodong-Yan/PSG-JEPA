@@ -13,6 +13,7 @@ conditioned on a 10-d task one-hot, not on language.
 ## Layout
 ```
 inventory.py        # the four variants and the pretraining recipe behind each one
+grounding.py        # the LIBERO grounding objective (state + action + multi-horizon Delta-q)
 dataset.py          # LIBERO-Goal demo dataset, encoder loading, image transform
 train_oft_head.py   # OFT action-head training with joint encoder fine-tuning
 eval_oft_head.py    # closed-loop evaluation in the LIBERO simulator
@@ -23,10 +24,8 @@ results/            # one eval log per variant + make_table.py to summarize them
 weights/            # manifest.json (sha256 of every released checkpoint) + download_weights.py
 ```
 
-Encoder pretraining runs through the repository's `train.py` with `configs/psgjepa_libero.yaml`
-and the dataset configs `configs/data/libero_goal_cm.yaml` and
-`configs/data/libero_goal_cm_state.yaml`. The grounding objective itself lives with the OGBench
-one, in `psgjepa/grounding.py`.
+The two hydra dataset configs used by encoder pretraining live with the other data configs, at
+`config/train/data/libero_goal_cm.yaml` and `config/train/data/libero_goal_cm_state.yaml`.
 
 ## Variants
 
@@ -40,9 +39,9 @@ one, in `psgjepa/grounding.py`.
 LIBERO logs no joint velocity, so the transition grounding uses the recorded **action** where
 OGBench uses instantaneous velocity; the multi-horizon Δjoint term is unchanged. The grounding
 target is the 15-d robot-body state `[joint_states(7), ee_pos(3), ee_ori(3), gripper(2)]`, with
-the first 7 dimensions serving as the joint vector `q`. `psgjepa/grounding.py` holds both forms
--- `grounding_loss` for OGBench, `libero_grounding_loss` here -- selected by
-`loss.grounding.target`. See `inventory.py` for the exact overrides behind each variant.
+the first 7 dimensions serving as the joint vector `q`. `grounding.py` holds that objective in
+the same shape as the OGBench `psgjepa/grounding.py`; see `inventory.py` for the exact hydra
+overrides behind each variant.
 
 ## Install
 
@@ -128,16 +127,16 @@ seed's numbers rather than the table's.
 
 ## Checkpoints
 
-We release **training seed 3072** for all four variants: 4 OFT heads and 3 encoders (the DINOv2
-row has no encoder checkpoint — it loads `facebook/dinov2-base` from Hugging Face), 1.5 GiB in
-total. `weights/manifest.json` lists each file with its sha256 and size. Evaluating a released
-checkpoint reproduces its entry in `results/` to within the eval spread noted above.
+We release the **PSG-JEPA** checkpoints at training seed 3072: the pretrained encoder and the
+OFT head that was jointly fine-tuned on it, 0.33 GiB together. `weights/manifest.json` lists both
+with their sha256 and size. Evaluating the released head reproduces `results/psgjepa.json` to
+within the eval spread noted above. The other three rows are reproduced by running the pipeline
+above; their eval logs are in `results/` for comparison.
 
 ```bash
-python libero/weights/download_weights.py                     # everything, 1.5 GiB
-python libero/weights/download_weights.py --variant psgjepa   # one variant
-python libero/weights/download_weights.py --kind encoder      # encoders only, 0.2 GiB
-python libero/weights/download_weights.py --verify-only       # re-check local files
+python libero/weights/download_weights.py                  # encoder + head, 0.33 GiB
+python libero/weights/download_weights.py --kind encoder   # encoder only, 0.07 GiB
+python libero/weights/download_weights.py --verify-only    # re-check local files
 ```
 
 Evaluate a downloaded head directly:
