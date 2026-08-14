@@ -12,12 +12,11 @@ so unpickling fails with
 unless the old names are registered first. The class definitions are unchanged, only their home
 moved, so aliasing the modules is enough -- no checkpoint rewriting is involved.
 
-Two names need more than an alias. A whole-object dump also contains the training-only auxiliary
-head that was attached to the model while it trained, under the name that head had at the time:
-``TriDecompHead`` for the grounding variants and ``InverseDynamicsHead`` for the action-IDM one.
-Those names have no counterpart in ``psgjepa.model``, so this module supplies them as thin
-``nn.Module`` subclasses. Unpickling restores their weights into ``world_model.idm_head``; nothing
-downstream reads it, and it is dropped when the encoder is handed to the action head.
+One name needs more than an alias. A whole-object dump also contains the grounding heads that
+were attached to the model while it trained, under the name they had at the time,
+``TriDecompHead``. That name has no counterpart in ``psgjepa.model``, so this module supplies it
+as a thin ``nn.Module`` subclass. Unpickling restores its weights into ``world_model.idm_head``;
+nothing downstream reads it, and it is dropped when the encoder is handed to the action head.
 
 Call `install()` before `torch.load`, or just import this module::
 
@@ -25,8 +24,7 @@ Call `install()` before `torch.load`, or just import this module::
     payload = torch.load(ckpt, map_location="cpu", weights_only=False)
 
 `dataset.load_world_model()` already does this, so the train/eval entry points in this directory
-need no extra step. This is only needed for the LeWM-family encoders; the DINOv2 rows load a
-plain Hugging Face model and are unaffected.
+need no extra step.
 """
 
 from __future__ import annotations
@@ -53,14 +51,7 @@ class TriDecompHead(nn.Module):
     """
 
 
-class InverseDynamicsHead(nn.Module):
-    """Training-only action-IDM head carried inside a whole-object encoder checkpoint.
-
-    Same story as ``TriDecompHead``: needed to unpickle, unused afterwards.
-    """
-
-
-LEGACY_HEADS = {"TriDecompHead": TriDecompHead, "InverseDynamicsHead": InverseDynamicsHead}
+LEGACY_HEADS = {"TriDecompHead": TriDecompHead}
 
 
 def _proxy(legacy_name: str, source) -> types.ModuleType:

@@ -30,8 +30,7 @@ LIBERO_ROOT = ROOT / "assets" / "benchmarks" / "LIBERO"
 LEWM_CODE = ROOT
 SCRIPTS_DIR = ROOT / "libero"
 # No default encoder checkpoint: a fresh clone has none. Pass --init-policy with the encoder
-# produced by pretraining (or downloaded via weights/download_weights.py); the DINOv2 rows use
-# --encoder-kind dinov2_hf instead and ignore it.
+# produced by pretraining, or downloaded via weights/download_weights.py.
 DEFAULT_LEWM = None
 
 
@@ -102,50 +101,7 @@ def find_model_with_attr(obj: Any, attr: str) -> Any | None:
     return None
 
 
-class PredictorDimProxy(nn.Module):
-    def __init__(self, hidden_size: int):
-        super().__init__()
-        self.register_buffer("pos_embedding", torch.zeros(1, 1, hidden_size), persistent=False)
-
-
-class DinoWorldModelWrapper(nn.Module):
-    """Expose a DINO image encoder through the LeWM `.encode()` contract."""
-
-    def __init__(self, dino: nn.Module, model_name: str):
-        super().__init__()
-        self.dino = dino
-        self.model_name = model_name
-        hidden_size = int(getattr(dino.config, "hidden_size"))
-        self.predictor = PredictorDimProxy(hidden_size)
-
-    def encode(self, info: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        pixels = info["pixels"]
-        if pixels.ndim != 5:
-            raise ValueError(f"DINO encoder expects pixels shaped (B,T,C,H,W), got {tuple(pixels.shape)}")
-        batch, seq_len, channels, height, width = pixels.shape
-        flat = pixels.reshape(batch * seq_len, channels, height, width)
-        out = self.dino(pixel_values=flat)
-        cls = out.last_hidden_state[:, 0]
-        return {"emb": cls.reshape(batch, seq_len, -1)}
-
-
-def load_dino_world_model(model_name: str, device: torch.device) -> nn.Module:
-    from transformers import AutoModel
-
-    dino = AutoModel.from_pretrained(model_name, local_files_only=True)
-    return DinoWorldModelWrapper(dino, model_name=model_name).to(device)
-
-
-def load_world_model(
-    path: Path,
-    device: torch.device,
-    encoder_kind: str = "lewm",
-    dino_model_name: str = "facebook/dinov2-base",
-) -> nn.Module:
-    if encoder_kind in {"dino", "dinov2", "dinov2_hf"}:
-        return load_dino_world_model(dino_model_name, device)
-    if encoder_kind != "lewm":
-        raise ValueError(f"Unknown encoder_kind={encoder_kind!r}")
+def load_world_model(path: Path, device: torch.device) -> nn.Module:
     prepend(LEWM_CODE)
     import compat  # noqa: WPS433 -- must run before unpickling, see compat.py
 

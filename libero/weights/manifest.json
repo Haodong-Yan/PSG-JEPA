@@ -11,33 +11,6 @@
     "pretrain_epoch": 40
   },
   "variants": {
-    "lewm": {
-      "paper_name": "LeWM",
-      "encoder": "lewm",
-      "data": "libero_goal_cm",
-      "grounding": "none (forward prediction + SIGReg only)",
-      "overrides": [
-        "loss.grounding.weight=0.0"
-      ]
-    },
-    "lewm_actionidm": {
-      "paper_name": "LeWM_ActionIDM",
-      "encoder": "lewm",
-      "data": "libero_goal_cm",
-      "grounding": "adjacent-pair action IDM only",
-      "overrides": [
-        "loss.grounding.weight=0.1",
-        "loss.grounding.w_state=0.0",
-        "loss.grounding.w_djoint=0.0"
-      ]
-    },
-    "dinov2": {
-      "paper_name": "DINOv2",
-      "encoder": "dinov2_hf",
-      "data": "",
-      "grounding": "n/a -- pretrained facebook/dinov2-base used as the encoder",
-      "overrides": []
-    },
     "psgjepa": {
       "paper_name": "PSG-JEPA (ours)",
       "encoder": "lewm",

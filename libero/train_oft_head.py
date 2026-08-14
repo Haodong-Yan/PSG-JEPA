@@ -44,9 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--libero-root", type=Path, default=LIBERO_ROOT)
     parser.add_argument("--init-policy", type=Path, default=DEFAULT_LEWM,
-                        help="pretrained encoder checkpoint; required unless --encoder-kind dinov2_hf")
-    parser.add_argument("--encoder-kind", choices=("lewm", "dinov2_hf"), default="lewm")
-    parser.add_argument("--dino-model", default="facebook/dinov2-base")
+                        help="pretrained PSG-JEPA encoder checkpoint")
     parser.add_argument(
         "--resume-checkpoint",
         type=Path,
@@ -778,12 +776,7 @@ def main() -> None:
         if resume_head_type != args.head_type:
             raise ValueError(f"Cannot resume {resume_head_type!r} head checkpoint with --head-type {args.head_type!r}")
     else:
-        world_model = load_world_model(
-            args.init_policy,
-            device,
-            encoder_kind=args.encoder_kind,
-            dino_model_name=args.dino_model,
-        )
+        world_model = load_world_model(args.init_policy, device)
     world_model.train(args.train_encoder)
     world_model.requires_grad_(args.train_encoder)
     base_embed_dim = int(world_model.predictor.pos_embedding.shape[-1])
@@ -830,8 +823,6 @@ def main() -> None:
                 "task_ids": task_ids,
                 "image_keys": image_keys,
                 "init_policy": str(args.init_policy),
-                "encoder_kind": args.encoder_kind,
-                "dino_model": args.dino_model,
                 "resume_checkpoint": str(args.resume_checkpoint) if args.resume_checkpoint is not None else None,
                 "run_dir": str(args.run_dir),
                 "device": str(device),

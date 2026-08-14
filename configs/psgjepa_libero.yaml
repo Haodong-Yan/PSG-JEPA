@@ -1,9 +1,9 @@
 # PSG-JEPA encoder pretraining on LIBERO-Goal.
 #   python train.py --config-name=psgjepa_libero
-# Variants are selected by overriding loss.grounding.* -- see libero/scripts/run_libero.sh.
+# libero/scripts/run_libero.sh drives this together with the downstream head and evaluation.
 defaults:
   - _self_
-  - data: libero_goal_cm_state    # libero_goal_cm (no state column) | libero_goal_cm_state
+  - data: libero_goal_cm_state    # written by libero/convert_libero_to_swm.py --with-state
 
 output_model_name: lewm_v2        # checkpoint stem, kept for the released checkpoint names
 subdir: ${hydra:job.id}

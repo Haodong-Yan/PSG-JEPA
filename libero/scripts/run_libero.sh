@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-# Full LIBERO-Goal pipeline for one variant and one training seed:
+# Full LIBERO-Goal pipeline for one training seed:
 #   encoder pretraining  ->  joint OFT head training  ->  closed-loop evaluation
 #
 # Usage:
-#   libero/scripts/run_libero.sh psgjepa 3072
-#   libero/scripts/run_libero.sh lewm 2048
-#
-# To reproduce a full table row, run it once per training seed (2048, 3072, 4096) and average
-# with `python libero/results/make_table.py`.
+#   libero/scripts/run_libero.sh 3072      # the released seed
 #
 # Two Python environments are required and cannot be merged: encoder pretraining runs against
 # stable-worldmodel (numpy>=2), while the LIBERO simulator stack (robosuite/robomimic) pins
@@ -33,37 +29,27 @@ N_EVAL=${N_EVAL:-50}
 MAX_STEPS=${MAX_STEPS:-600}
 GPU=${GPU:-0}
 
-VARIANT=${1:?usage: run_libero.sh <variant> <seed>}
-SEED=${2:?usage: run_libero.sh <variant> <seed>}
+SEED=${1:-3072}
 
-# variant -> (hydra data config, grounding overrides for configs/psgjepa_libero.yaml).
 # Mirrors libero/inventory.py; keep the two in sync.
-#   lewm            grounding off entirely
-#   lewm_actionidm  motion head only -- no state column needed, so the plain dataset is enough
-#   psgjepa         all three terms, the config defaults
-case "$VARIANT" in
-  lewm)           DATA=libero_goal_cm;       GROUNDING=(loss.grounding.weight=0.0) ;;
-  lewm_actionidm) DATA=libero_goal_cm;       GROUNDING=(loss.grounding.weight=0.1 loss.grounding.w_state=0.0 loss.grounding.w_djoint=0.0) ;;
-  psgjepa)        DATA=libero_goal_cm_state; GROUNDING=(loss.grounding.weight=0.1) ;;
-  dinov2)         DATA=;                     GROUNDING=() ;;   # no pretraining stage
-  *) echo "unknown variant: $VARIANT (expected lewm | lewm_actionidm | dinov2 | psgjepa)" >&2; exit 2 ;;
-esac
+DATA=libero_goal_cm_state
+GROUNDING=(loss.grounding.weight=0.1)
 
-RUN=${VARIANT}_seed${SEED}
+RUN=psgjepa_seed${SEED}
 RUN_DIR=$OUT/$RUN
-ENC_SUBDIR=libero_${VARIANT}_seed${SEED}_ep${PRETRAIN_EPOCH}
+ENC_SUBDIR=libero_psgjepa_seed${SEED}_ep${PRETRAIN_EPOCH}
 ENC_CKPT=$STABLEWM_HOME/$ENC_SUBDIR/lewm_v2_epoch_${PRETRAIN_EPOCH}_object.ckpt
 EVAL_JSON=$OUT/${RUN}_eval_all_n${N_EVAL}_s${EVAL_SEED}_ep${HEAD_EPOCH}.json
 mkdir -p "$RUN_DIR" "$STABLEWM_HOME"
 
 export CUDA_VISIBLE_DEVICES=$GPU TOKENIZERS_PARALLELISM=false
-log() { echo "[$(date '+%F %T')] [$VARIANT seed=$SEED] $*"; }
+log() { echo "[$(date '+%F %T')] [psgjepa seed=$SEED] $*"; }
 
 # ---- 0. preflight: everything the last stage needs, checked before the first one ----
 # Pretraining alone takes hours, so a missing simulator or dataset must fail now, not after it.
 preflight() {
   local ok=0
-  if [[ -n "$DATA" && ! -s "$STABLEWM_HOME/$DATA.h5" ]]; then
+  if [[ ! -s "$STABLEWM_HOME/$DATA.h5" ]]; then
     log "MISSING dataset $STABLEWM_HOME/$DATA.h5 -- run libero/convert_libero_to_swm.py first"
     ok=1
   fi
@@ -81,15 +67,15 @@ preflight() {
 }
 preflight || { log "preflight failed, nothing was run"; exit 1; }
 
-# ---- 1. encoder pretraining (skipped for the DINOv2 rows, which use a pretrained HF encoder) ----
-if [[ -n "$DATA" && ! -s "$ENC_CKPT" ]]; then
+# ---- 1. encoder pretraining ----
+if [[ ! -s "$ENC_CKPT" ]]; then
   log "pretraining encoder -> $ENC_CKPT"
   ( cd "$REPO" && STABLEWM_HOME=$STABLEWM_HOME "$PY_PRETRAIN" train.py \
       --config-name=psgjepa_libero \
       data="$DATA" seed="$SEED" \
       trainer.max_epochs="$PRETRAIN_EPOCH" subdir="$ENC_SUBDIR" "${GROUNDING[@]}" ) || exit 1
   [[ -s "$ENC_CKPT" ]] || { log "pretraining produced no checkpoint"; exit 1; }
-elif [[ -n "$DATA" ]]; then
+else
   log "encoder exists, skipping pretraining"
 fi
 
@@ -101,10 +87,8 @@ export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
 HEAD_CKPT=$RUN_DIR/lewm_libero_oft_head_epoch_${HEAD_EPOCH}.ckpt
 if [[ ! -s "$HEAD_CKPT" ]]; then
   log "training OFT head -> $HEAD_CKPT"
-  ENCODER_ARGS=(--init-policy "$ENC_CKPT")
-  [[ "$VARIANT" == "dinov2" ]] && ENCODER_ARGS=(--encoder-kind dinov2_hf --dino-model facebook/dinov2-base)
   "$PY_LIBERO" "$REPO/libero/train_oft_head.py" \
-    --libero-root "$LIBERO_ROOT" "${ENCODER_ARGS[@]}" --tasks all \
+    --libero-root "$LIBERO_ROOT" --init-policy "$ENC_CKPT" --tasks all \
     --seq-len 2 --image-keys agentview_rgb,eye_in_hand_rgb \
     --chunk-len 8 --action-horizon 8 \
     --head-type oft --hidden-dim 1024 --num-layers 4 --num-heads 8 --dropout 0.1 \

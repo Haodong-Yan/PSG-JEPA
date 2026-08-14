@@ -1,4 +1,4 @@
-"""Convert LIBERO-Goal demos -> a single swm HDF5 dataset for LeWM encoder pretraining.
+"""Convert LIBERO-Goal demos into the single HDF5 file the encoder pretraining reads.
 
 Output schema (matches stable_worldmodel.data.HDF5Dataset):
   pixels    : (N, H, W, 3) uint8   agentview, every atomic frame
@@ -6,24 +6,21 @@ Output schema (matches stable_worldmodel.data.HDF5Dataset):
   ep_len    : (E,)         int64   per-episode atomic length
   ep_offset : (E,)         int64   cumulative start offset
 
-Geometry preprocessing per frame mirrors RC-aux OFT (_prep_image):
-  rotate 180 -> center-crop 0.9 -> resize to --img-size (BILINEAR).
-This keeps the pretrained encoder's view consistent with the OFT head's input
-(both then apply ImageNet-norm + resize-224 downstream).
+Each frame is preprocessed exactly as the action head will see it -- rotate 180, center-crop 0.9,
+resize to --img-size (bilinear) -- so the pretrained encoder and the downstream head share one
+view geometry; both then apply the ImageNet normalization and resize to 224.
 
-With --with-state, also stores a robot-body-only proprio vector (NO object/privileged
-state — LIBERO demos expose only robot proprio anyway), used as the delta-state target
-for the F/G/N dstate IDM variants (endpoint/adjacent/multiscale_dstate). LIBERO has no
-velocity field; per design we do NOT synthesize it, so this is a position-only state:
+`--with-state` additionally stores the robot-body state, which is the grounding target. LIBERO
+demos expose robot proprioception only, with no velocity field, and none is synthesized, so this
+is a position-only state:
+
   observation = proprio = [joint_states(7), ee_pos(3), ee_ori(3), gripper_states(2)] = 15-d
-Both `observation` (dstate target) and `proprio` (encoder state, unused when
-use_state=false) are written, mirroring the proven cube dstate data layout.
 
-Usage (run in the swm .venv):
-  # video-only (baseline/C/E, action IDM): pixels+action only
-  python tools/convert_libero_to_swm.py --out-name libero_goal_cm
-  # with proprio (F/G/N dstate): adds observation+proprio
-  python tools/convert_libero_to_swm.py --with-state --out-name libero_goal_cm_state
+Both `observation` (the grounding target) and `proprio` (an optional encoder input, unused when
+wm.use_state=false) are written.
+
+Usage:
+  python libero/convert_libero_to_swm.py --with-state --out-name libero_goal_cm_state
 """
 import argparse
 import os

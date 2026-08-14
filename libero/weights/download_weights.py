@@ -39,8 +39,6 @@ def sha256(path: Path) -> str:
 
 def select(files: list[dict], args: argparse.Namespace) -> list[dict]:
     out = files
-    if args.variant:
-        out = [f for f in out if f["variant"] in args.variant]
     if args.kind:
         out = [f for f in out if f["kind"] == args.kind]
     return out
@@ -50,7 +48,6 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dest", type=Path, default=HERE / "checkpoints")
     parser.add_argument("--repo-id", default=DEFAULT_REPO, help="Hugging Face model repo")
-    parser.add_argument("--variant", action="append", help="repeatable; default: all")
     parser.add_argument("--kind", choices=("encoder", "head"))
     parser.add_argument("--verify-only", action="store_true", help="no download, just re-hash")
     args = parser.parse_args()
